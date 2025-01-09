@@ -206,6 +206,77 @@ const LoginOrganizationService = ({ email, password }) =>
         }
     });
 
+const LoginAdminService = ({ email, password }) =>
+    new Promise(async (resolve, reject) => {
+        try {
+            // Tìm người dùng theo email
+            const response = await db.User.findOne({
+                where: { email },
+                raw: true,
+            });
+            if (!response) {
+                return resolve({
+                    err: 2,
+                    msg: "Email not found!",
+                    token: null,
+                    userId: null,
+                    roleName: null,
+                });
+            }
+
+            // Kiểm tra roleId và roleName của người dùng
+            const userRole = await db.UserRole.findOne({
+                where: { userId: response.id },
+                include: [
+                    {
+                        model: db.Role,
+                        attributes: ["name", "id"], // Lấy cả name và id của role
+                        as: "role",
+                    },
+                ],
+                raw: true,
+                nest: true,
+            });
+
+            // Kiểm tra xem roleId có phải là 1 và roleName có phải là "Admin"
+            if (userRole?.role?.id !== 1 || userRole?.role?.name !== "Admin") {
+                return resolve({
+                    err: 4,
+                    msg: "Tài khoản này không có quyền truy cập!",
+                    token: null,
+                    userId: null,
+                    roleName: null,
+                });
+            }
+
+            // Kiểm tra mật khẩu đúng không
+            const isCorrectPassword =
+                response && bcrypt.compareSync(password, response.password);
+
+            const token =
+                isCorrectPassword &&
+                jwt.sign(
+                    {
+                        id: response.id,
+                        email: response.email,
+                        role: userRole?.role?.name,
+                    },
+                    process.env.SECRET_KEY,
+                    { expiresIn: "2d" }
+                );
+
+            resolve({
+                err: token ? 0 : 2,
+                msg: token ? "Login is successful" : "Password is wrong!",
+                token: token || null,
+                userId: token ? response.id : null,
+                roleName: token ? userRole?.role?.name : null,
+            });
+        } catch (error) {
+            reject(error);
+        }
+    });
+
 const ChangeRoleService = async (userId) =>
     new Promise(async (resolve, reject) => {
         try {
@@ -249,4 +320,5 @@ module.exports = {
     LoginService,
     LoginOrganizationService,
     ChangeRoleService,
+    LoginAdminService,
 };

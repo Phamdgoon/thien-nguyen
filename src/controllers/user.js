@@ -88,3 +88,51 @@ export const chatUser = async (req, res) => {
         });
     }
 };
+
+export const getDonationById = async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(400).json({
+                err: 1,
+                msg: "Missing userId in query parameters",
+            });
+        }
+        const response = await services.getDonationByIdService(userId);
+        return res.status(200).json(response);
+    } catch (error) {
+        return res.status(500).json({
+            err: -1,
+            msg: "Failed at user controller: " + error,
+        });
+    }
+};
+export const getDonationByCampaignId = async (req, res) => {
+    try {
+        const { campaignId } = req.params;
+        const organizationId = req.user?.id;
+
+        if (!campaignId) {
+            return res.status(400).json({
+                err: 1,
+                msg: "Missing campaignId in request body",
+            });
+        }
+        if (!organizationId) {
+            return res.status(403).json({
+                err: 1,
+                msg: "Unauthorized. Organization not logged in.",
+            });
+        }
+        const response = await services.getDonationByCampaignIdService(
+            campaignId,
+            organizationId
+        );
+        return res.status(200).json(response);
+    } catch (error) {
+        return res.status(500).json({
+            err: -1,
+            msg: "Failed at user controller: " + error,
+        });
+    }
+};

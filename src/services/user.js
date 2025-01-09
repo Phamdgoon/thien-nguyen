@@ -42,6 +42,17 @@ export const getAllUserService = () =>
             const response = await db.User.findAll({
                 raw: true,
                 attributes: { exclude: ["password", "createdAt", "updatedAt"] },
+                include: [
+                    {
+                        model: db.UserRole, // Kết nối với bảng UserRole
+                        as: "userRoles", // Alias cho UserRole
+                        where: {
+                            roleId: {
+                                [db.Sequelize.Op.ne]: 1, // Loại bỏ những UserRole có roleId = 1
+                            },
+                        },
+                    },
+                ],
             });
             resolve({
                 err: response ? 0 : 1,
@@ -308,5 +319,77 @@ export const chatUserService = (message) =>
                 msg: "Failed to get response from GroqAPI",
                 error: errorMsg,
             });
+        }
+    });
+
+export const getDonationByIdService = (userId) =>
+    new Promise(async (resolve, reject) => {
+        try {
+            const response = await db.Donation.findAll({
+                where: { userId },
+                include: [
+                    {
+                        model: db.User,
+                        as: "user",
+                        attributes: ["id", "name", "email"],
+                    },
+                    {
+                        model: db.Campaign,
+                        as: "campaign",
+                        attributes: ["id", "title"],
+                    },
+                    {
+                        model: db.Payment,
+                        as: "payment",
+                        attributes: ["id", "paymentStatus", "paymentDate"],
+                    },
+                ],
+                attributes: { exclude: ["createdAt", "updatedAt"] },
+            });
+            resolve({
+                err: response ? 0 : 1,
+                msg: response ? "OK" : "No donations found for this user.",
+                response,
+            });
+        } catch (error) {
+            reject(error);
+        }
+    });
+export const getDonationByCampaignIdService = (campaignId, organizationId) =>
+    new Promise(async (resolve, reject) => {
+        try {
+            const response = await db.Donation.findAll({
+                where: { campaignId },
+                include: [
+                    {
+                        model: db.User,
+                        as: "user",
+                        attributes: ["id", "name", "email"],
+                    },
+                    {
+                        model: db.Campaign,
+                        as: "campaign",
+                        where: { organizationId },
+                        attributes: ["id", "title"],
+                    },
+                    {
+                        model: db.Payment,
+                        as: "payment",
+                        attributes: ["id", "paymentStatus", "paymentDate"],
+                    },
+                ],
+                attributes: { exclude: ["createdAt", "updatedAt"] },
+            });
+
+            resolve({
+                err: response.length > 0 ? 0 : 1,
+                msg:
+                    response.length > 0
+                        ? "OK"
+                        : "No donations found for this campaign.",
+                response,
+            });
+        } catch (error) {
+            reject(error);
         }
     });

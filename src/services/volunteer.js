@@ -1,4 +1,5 @@
 import db from "../models";
+import { Op } from "sequelize";
 
 export const registerVolunteerService = (campaignId, body, userId) =>
     new Promise(async (resolve, reject) => {
@@ -176,7 +177,6 @@ export const approvedVolunteerService = async (volunteerId) =>
                     where: { id: volunteerId },
                 }
             );
-
             if (!volunteerUpdated[0]) {
                 return resolve({
                     err: 1,
@@ -207,7 +207,12 @@ export const getVolunteerByIdService = (userId) =>
                     {
                         model: db.Status,
                         as: "status",
-                        where: { entityType: "volunteer" },
+                        where: {
+                            entityType: "volunteer",
+                            name: {
+                                [Op.ne]: "Đã hoàn thành",
+                            },
+                        },
                         attributes: ["name", "entityType"],
                     },
                     {
@@ -218,6 +223,13 @@ export const getVolunteerByIdService = (userId) =>
                                 model: db.Campaign,
                                 as: "campaign",
                                 attributes: ["id", "title", "startDate"],
+                                include: [
+                                    {
+                                        model: db.Status,
+                                        as: "status",
+                                        attributes: ["name", "entityType"],
+                                    },
+                                ],
                             },
                         ],
                         attributes: { exclude: ["createdAt", "updatedAt"] },

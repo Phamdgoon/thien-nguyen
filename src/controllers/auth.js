@@ -75,6 +75,24 @@ const LoginOrganization = async (req, res) => {
         });
     }
 };
+const LoginAdmin = async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        if (!email || !password) {
+            return res.status(400).json({
+                err: 1,
+                msg: "Missing inputs",
+            });
+        }
+        const response = await authService.LoginAdminService(req.body);
+        return res.status(200).json(response);
+    } catch (error) {
+        return res.status(500).json({
+            err: -1,
+            msg: "Fail at auth controller: " + error,
+        });
+    }
+};
 
 const ChangeRole = async (req, res) => {
     const userId = req.user.id;
@@ -95,4 +113,5 @@ module.exports = {
     RegisterOrganization,
     Login,
     ChangeRole,
+    LoginAdmin,
 };
